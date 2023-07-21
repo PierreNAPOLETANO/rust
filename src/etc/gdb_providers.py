@@ -24,10 +24,7 @@ class EnumProvider:
         fields = content.type.fields()
         self.empty = len(fields) == 0
         if not self.empty:
-            if len(fields) == 1:
-                discriminant = 0
-            else:
-                discriminant = int(content[fields[0]]) + 1
+            discriminant = 0 if len(fields) == 1 else int(content[fields[0]]) + 1
             self.active_variant = content[fields[discriminant]]
             self.name = fields[discriminant].name
             self.full_name = "{}::{}".format(valobj.type.name, self.name)
@@ -171,10 +168,7 @@ class StdRcProvider:
         self.weak = self.ptr["weak"]["v" if is_atomic else "value"]["value"] - 1
 
     def to_string(self):
-        if self.is_atomic:
-            return "Arc(strong={}, weak={})".format(int(self.strong), int(self.weak))
-        else:
-            return "Rc(strong={}, weak={})".format(int(self.strong), int(self.weak))
+        return "Arc(strong={}, weak={})".format(int(self.strong), int(self.weak)) if self.is_atomic else "Rc(strong={}, weak={})".format(int(self.strong), int(self.weak))
 
     def children(self):
         yield "value", self.value
@@ -200,10 +194,7 @@ class StdRefProvider:
 
     def to_string(self):
         borrow = int(self.borrow)
-        if borrow >= 0:
-            return "Ref(borrow={})".format(borrow)
-        else:
-            return "Ref(borrow_mut={})".format(-borrow)
+        return "Ref(borrow={})".format(borrow) if borrow >= 0 else "Ref(borrow_mut={})".format(-borrow)
 
     def children(self):
         yield "*value", self.value
@@ -217,10 +208,7 @@ class StdRefCellProvider:
 
     def to_string(self):
         borrow = int(self.borrow)
-        if borrow >= 0:
-            return "RefCell(borrow={})".format(borrow)
-        else:
-            return "RefCell(borrow_mut={})".format(-borrow)
+        return "RefCell(borrow={})".format(borrow) if borrow >= 0 else "RefCell(borrow_mut={})".format(-borrow)
 
     def children(self):
         yield "value", self.value
@@ -345,10 +333,7 @@ class StdOldHashMapProvider:
                 self.valid_indices.append(idx)
 
     def to_string(self):
-        if self.show_values:
-            return "HashMap(size={})".format(self.size)
-        else:
-            return "HashSet(size={})".format(self.size)
+        return "HashMap(size={})".format(self.size) if self.show_values else "HashSet(size={})".format(self.size)
 
     def children(self):
         start = int(self.data_ptr) & ~1
@@ -389,10 +374,7 @@ class StdHashMapProvider:
         self.pair_type = table.type.template_argument(0).strip_typedefs()
 
         self.new_layout = not table_inner.type.has_key("data")
-        if self.new_layout:
-            self.data_ptr = ctrl.cast(self.pair_type.pointer())
-        else:
-            self.data_ptr = table_inner["data"]["pointer"]
+        self.data_ptr = ctrl.cast(self.pair_type.pointer()) if self.new_layout else table_inner["data"]["pointer"]
 
         self.valid_indices = []
         for idx in range(capacity):
@@ -415,10 +397,7 @@ class StdHashMapProvider:
         return hashbrown_hashmap["table"]
 
     def to_string(self):
-        if self.show_values:
-            return "HashMap(size={})".format(self.size)
-        else:
-            return "HashSet(size={})".format(self.size)
+        return "HashMap(size={})".format(self.size) if self.show_values else "HashSet(size={})".format(self.size)
 
     def children(self):
         pairs_start = self.data_ptr

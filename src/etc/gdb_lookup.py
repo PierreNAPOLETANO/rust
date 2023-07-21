@@ -64,16 +64,10 @@ def lookup(valobj):
     if rust_type == RustType.STD_BTREE_MAP:
         return StdBTreeMapProvider(valobj)
     if rust_type == RustType.STD_HASH_MAP:
-        if is_hashbrown_hashmap(valobj):
-            return StdHashMapProvider(valobj)
-        else:
-            return StdOldHashMapProvider(valobj)
+        return StdHashMapProvider(valobj) if is_hashbrown_hashmap(valobj) else StdOldHashMapProvider(valobj)
     if rust_type == RustType.STD_HASH_SET:
         hash_map = valobj[valobj.type.fields()[0]]
-        if is_hashbrown_hashmap(hash_map):
-            return StdHashMapProvider(valobj, show_values=False)
-        else:
-            return StdOldHashMapProvider(hash_map, show_values=False)
+        return StdHashMapProvider(valobj, show_values=False) if is_hashbrown_hashmap(hash_map) else StdOldHashMapProvider(hash_map, show_values=False)
 
     if rust_type == RustType.STD_RC:
         return StdRcProvider(valobj)

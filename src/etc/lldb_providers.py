@@ -184,12 +184,9 @@ class StructSyntheticProvider:
         self.type = valobj.GetType()
         self.fields = {}
 
-        if is_variant:
-            self.fields_count = self.type.GetNumberOfFields() - 1
-            real_fields = self.type.fields[1:]
-        else:
-            self.fields_count = self.type.GetNumberOfFields()
-            real_fields = self.type.fields
+
+        self.fields_count = self.type.GetNumberOfFields() - 1 if is_variant else self.type.GetNumberOfFields()
+        real_fields = self.type.fields[1:] if is_variant else self.type.fields
 
         for number, field in enumerate(real_fields):
             self.fields[field.name] = number
@@ -204,10 +201,7 @@ class StructSyntheticProvider:
 
     def get_child_at_index(self, index):
         # type: (int) -> SBValue
-        if self.is_variant:
-            field = self.type.GetFieldAtIndex(index + 1)
-        else:
-            field = self.type.GetFieldAtIndex(index)
+        field = self.type.GetFieldAtIndex(index + 1) if self.is_variant else self.type.GetFieldAtIndex(index)
         return self.valobj.GetChildMemberWithName(field.name)
 
     def update(self):
@@ -229,10 +223,7 @@ class TupleSyntheticProvider:
         self.is_variant = is_variant
         self.type = valobj.GetType()
 
-        if is_variant:
-            self.size = self.type.GetNumberOfFields() - 1
-        else:
-            self.size = self.type.GetNumberOfFields()
+        self.size = self.type.GetNumberOfFields() - 1 if is_variant else self.type.GetNumberOfFields()
 
     def num_children(self):
         # type: () -> int
@@ -240,17 +231,11 @@ class TupleSyntheticProvider:
 
     def get_child_index(self, name):
         # type: (str) -> int
-        if name.isdigit():
-            return int(name)
-        else:
-            return -1
+        return int(name) if name.isdigit() else -1
 
     def get_child_at_index(self, index):
         # type: (int) -> SBValue
-        if self.is_variant:
-            field = self.type.GetFieldAtIndex(index + 1)
-        else:
-            field = self.type.GetFieldAtIndex(index)
+        field = self.type.GetFieldAtIndex(index + 1) if self.is_variant else self.type.GetFieldAtIndex(index)
         element = self.valobj.GetChildMemberWithName(field.name)
         return self.valobj.CreateValueFromData(str(index), element.GetData(), element.GetType())
 
@@ -289,10 +274,7 @@ class StdVecSyntheticProvider:
     def get_child_index(self, name):
         # type: (str) -> int
         index = name.lstrip('[').rstrip(']')
-        if index.isdigit():
-            return int(index)
-        else:
-            return -1
+        return int(index) if index.isdigit() else -1
 
     def get_child_at_index(self, index):
         # type: (int) -> SBValue
@@ -328,10 +310,7 @@ class StdSliceSyntheticProvider:
     def get_child_index(self, name):
         # type: (str) -> int
         index = name.lstrip('[').rstrip(']')
-        if index.isdigit():
-            return int(index)
-        else:
-            return -1
+        return int(index) if index.isdigit() else -1
 
     def get_child_at_index(self, index):
         # type: (int) -> SBValue
@@ -373,10 +352,7 @@ class StdVecDequeSyntheticProvider:
     def get_child_index(self, name):
         # type: (str) -> int
         index = name.lstrip('[').rstrip(']')
-        if index.isdigit() and int(index) < self.size:
-            return int(index)
-        else:
-            return -1
+        return int(index) if index.isdigit() and int(index) < self.size else -1
 
     def get_child_at_index(self, index):
         # type: (int) -> SBValue
@@ -423,10 +399,7 @@ class StdOldHashMapSyntheticProvider:
     def get_child_index(self, name):
         # type: (str) -> int
         index = name.lstrip('[').rstrip(']')
-        if index.isdigit():
-            return int(index)
-        else:
-            return -1
+        return int(index) if index.isdigit() else -1
 
     def get_child_at_index(self, index):
         # type: (int) -> SBValue
@@ -505,10 +478,7 @@ class StdHashMapSyntheticProvider:
     def get_child_index(self, name):
         # type: (str) -> int
         index = name.lstrip('[').rstrip(']')
-        if index.isdigit():
-            return int(index)
-        else:
-            return -1
+        return int(index) if index.isdigit() else -1
 
     def get_child_at_index(self, index):
         # type: (int) -> SBValue
@@ -539,10 +509,7 @@ class StdHashMapSyntheticProvider:
         self.pair_type_size = self.pair_type.GetByteSize()
 
         self.new_layout = not inner_table.GetChildMemberWithName("data").IsValid()
-        if self.new_layout:
-            self.data_ptr = ctrl.Cast(self.pair_type.GetPointerType())
-        else:
-            self.data_ptr = inner_table.GetChildMemberWithName("data").GetChildAtIndex(0)
+        self.data_ptr = ctrl.Cast(self.pair_type.GetPointerType()) if self.new_layout else self.data_ptr = inner_table.GetChildMemberWithName("data").GetChildAtIndex(0)
 
         u8_type = self.valobj.GetTarget().GetBasicType(eBasicTypeUnsignedChar)
         u8_type_size = self.valobj.GetTarget().GetBasicType(eBasicTypeUnsignedChar).GetByteSize()
@@ -558,13 +525,7 @@ class StdHashMapSyntheticProvider:
 
     def table(self):
         # type: () -> SBValue
-        if self.show_values:
-            hashbrown_hashmap = self.valobj.GetChildMemberWithName("base")
-        else:
-            # BACKCOMPAT: rust 1.47
-            # HashSet wraps either std HashMap or hashbrown::HashSet, which both
-            # wrap hashbrown::HashMap, so either way we "unwrap" twice.
-            hashbrown_hashmap = self.valobj.GetChildAtIndex(0).GetChildAtIndex(0)
+        hashbrown_hashmap = self.valobj.GetChildMemberWithName("base") if self.show_values else self.valobj.GetChildAtIndex(0).GetChildAtIndex(0)
         return hashbrown_hashmap.GetChildMemberWithName("table")
 
     def has_children(self):
@@ -696,13 +657,9 @@ class StdRefSyntheticProvider:
 
         borrow = valobj.GetChildMemberWithName("borrow")
         value = valobj.GetChildMemberWithName("value")
-        if is_cell:
-            self.borrow = borrow.GetChildMemberWithName("value").GetChildMemberWithName("value")
-            self.value = value.GetChildMemberWithName("value")
-        else:
-            self.borrow = borrow.GetChildMemberWithName("borrow").GetChildMemberWithName(
-                "value").GetChildMemberWithName("value")
-            self.value = value.Dereference()
+
+        self.borrow = borrow.GetChildMemberWithName("value").GetChildMemberWithName("value") if is_cell else borrow.GetChildMemberWithName("borrow").GetChildMemberWithName("value").GetChildMemberWithName("value")
+        self.value = value.GetChildMemberWithName("value") if is_cell else value.Dereference()
 
         self.value_builder = ValueBuilder(valobj)
 

@@ -90,16 +90,10 @@ def synthetic_lookup(valobj, dict):
         return StdSliceSyntheticProvider(valobj, dict)
 
     if rust_type == RustType.STD_HASH_MAP:
-        if is_hashbrown_hashmap(valobj):
-            return StdHashMapSyntheticProvider(valobj, dict)
-        else:
-            return StdOldHashMapSyntheticProvider(valobj, dict)
+        return StdHashMapSyntheticProvider(valobj, dict) if is_hashbrown_hashmap(valobj) else StdOldHashMapSyntheticProvider(valobj, dict)
     if rust_type == RustType.STD_HASH_SET:
         hash_map = valobj.GetChildAtIndex(0)
-        if is_hashbrown_hashmap(hash_map):
-            return StdHashMapSyntheticProvider(valobj, dict, show_values=False)
-        else:
-            return StdOldHashMapSyntheticProvider(hash_map, dict, show_values=False)
+        return StdHashMapSyntheticProvider(valobj, dict, show_values=False) if is_hashbrown_hashmap(hash_map) else StdOldHashMapSyntheticProvider(hash_map, dict, show_values=False)
 
     if rust_type == RustType.STD_RC:
         return StdRcSyntheticProvider(valobj, dict)
